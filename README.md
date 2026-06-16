@@ -1,6 +1,15 @@
 # kaggle-mcp
 
+[![PyPI](https://img.shields.io/pypi/v/safe-kaggle-mcp)](https://pypi.org/project/safe-kaggle-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/safe-kaggle-mcp)](https://pypi.org/project/safe-kaggle-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 A **safety-first** [Model Context Protocol](https://modelcontextprotocol.io) server that connects Claude (Desktop / Code) to [Kaggle](https://www.kaggle.com) — competitions, datasets, kernels (notebooks), and models.
+
+```bash
+# install + register with Claude Code (published on PyPI as `safe-kaggle-mcp`)
+claude mcp add --transport stdio kaggle -- uvx --from safe-kaggle-mcp kaggle-mcp
+```
 
 Unlike a thin API mirror, this server adds the guardrails an autonomous agent needs:
 
