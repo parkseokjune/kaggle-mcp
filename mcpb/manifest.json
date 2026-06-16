@@ -1,0 +1,57 @@
+{
+  "manifest_version": "0.4",
+  "name": "safe-kaggle-mcp",
+  "display_name": "Safe Kaggle MCP",
+  "version": "0.4.1",
+  "description": "Safety-first Kaggle MCP — confirm-gated destructive ops, submission budget, injection-fenced.",
+  "long_description": "A safety-first Model Context Protocol server connecting Claude to Kaggle (competitions, datasets, kernels, models, discussions). Gates every irreversible action (submit/delete/publish) behind a two-call confirm token, caps submissions per competition, fences all Kaggle-returned text as untrusted content, and keeps credentials out of the model context. 41 tools. Distributed on PyPI as safe-kaggle-mcp and run locally with uvx.",
+  "author": {
+    "name": "parkseokjune",
+    "url": "https://github.com/parkseokjune"
+  },
+  "homepage": "https://github.com/parkseokjune/kaggle-mcp",
+  "documentation": "https://github.com/parkseokjune/kaggle-mcp#readme",
+  "license": "MIT",
+  "keywords": ["kaggle", "mcp", "claude", "competitions", "datasets", "safety"],
+  "server": {
+    "type": "uv",
+    "entry_point": "kaggle_mcp.server",
+    "mcp_config": {
+      "command": "uvx",
+      "args": ["--from", "safe-kaggle-mcp", "kaggle-mcp"],
+      "env": {
+        "KAGGLE_USERNAME": "${user_config.kaggle_username}",
+        "KAGGLE_KEY": "${user_config.kaggle_key}",
+        "KAGGLE_API_TOKEN": "${user_config.kaggle_api_token}"
+      }
+    }
+  },
+  "user_config": {
+    "kaggle_username": {
+      "type": "string",
+      "title": "Kaggle Username",
+      "description": "Your Kaggle username (legacy scheme; pair with the API key). Optional — read-only tools work without credentials.",
+      "required": false
+    },
+    "kaggle_key": {
+      "type": "string",
+      "title": "Kaggle API Key",
+      "description": "The 40-char 'key' from kaggle.json (legacy scheme; pair with the username).",
+      "sensitive": true,
+      "required": false
+    },
+    "kaggle_api_token": {
+      "type": "string",
+      "title": "Kaggle API Token (KGAT_...)",
+      "description": "Modern Kaggle token, alternative to username/key.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "tools_generated": true,
+  "compatibility": {
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}
