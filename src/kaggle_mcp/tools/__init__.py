@@ -31,10 +31,11 @@ def error(exc: Exception) -> dict[str, Any]:
 
 
 def register_all_tools(mcp: FastMCP) -> None:
-    from . import account, competitions, datasets, kernels, models
+    from . import account, competitions, datasets, discussions, kernels, models
 
     account.register(mcp)
     competitions.register(mcp)
     datasets.register(mcp)
+    discussions.register(mcp)
     kernels.register(mcp)
     models.register(mcp)

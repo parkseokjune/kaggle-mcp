@@ -52,3 +52,12 @@ async def test_live_public_dataset_download():
     r = await _call("kaggle_download_dataset", {"dataset": "uciml/iris"})
     assert "isError" not in r
     assert r["files"], "expected at least one extracted file"
+
+
+async def test_live_search_and_read_discussion():
+    s = await _call("kaggle_search_discussions", {"search": "titanic", "page_size": 3})
+    assert s["count"] >= 1
+    tid = s["topics"][0]["id"]
+    d = await _call("kaggle_get_discussion", {"topic_id": tid, "max_messages": 2})
+    assert d["message_count"] >= 1
+    assert "<untrusted-content>" in d["messages"][0]["content"]  # injection-safe fencing
