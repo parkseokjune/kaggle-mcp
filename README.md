@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/parkseokjune/kaggle-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/parkseokjune/kaggle-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/safe-kaggle-mcp)](https://pypi.org/project/safe-kaggle-mcp/)
+[![smithery](https://smithery.ai/badge/parkseokjune/kaggle-mcp)](https://smithery.ai/server/parkseokjune/kaggle-mcp)
 [![Python](https://img.shields.io/pypi/pyversions/safe-kaggle-mcp)](https://pypi.org/project/safe-kaggle-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
