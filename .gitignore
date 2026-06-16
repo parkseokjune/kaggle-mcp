@@ -1,0 +1,28 @@
+# --- Secrets: never commit Kaggle credentials ---
+kaggle.json
+.kaggle/
+*.kaggle.json
+access_token
+.env
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# --- Tooling ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+uv.lock
+
+# --- Server work dir (downloaded datasets/competition files) ---
+.kaggle-mcp-work/
+
+# --- OS ---
+.DS_Store

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "kaggle": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["kaggle-mcp"],
+      "env": {
+        "KAGGLE_USERNAME": "REPLACE_ME",
+        "KAGGLE_KEY": "REPLACE_ME"
+      }
+    }
+  }
+}
