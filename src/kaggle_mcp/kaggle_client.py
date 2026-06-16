@@ -13,6 +13,7 @@ This module has ZERO mcp imports so it is fully unit-testable with a mocked clie
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import tempfile
 import zipfile
@@ -113,14 +114,28 @@ def _invoke(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return fn(*args, **kwargs)
 
 
+def _accepts_kwarg(fn: Callable[..., Any], name: str) -> bool:
+    """True if fn's signature accepts `name` (explicitly or via **kwargs)."""
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):  # pragma: no cover - builtins without signatures
+        return True
+    if name in params:
+        return True
+    return any(p.kind == p.VAR_KEYWORD for p in params.values())
+
+
 async def call(method_name: str, *args: Any, **kwargs: Any) -> Any:
     """Call a KaggleApi method by name, off the event loop, with quiet + backoff.
 
+    `quiet=True` is only injected for methods that accept it — list/search methods
+    (competitions_list, dataset_list, ...) do NOT take a quiet param and would raise.
     Raises a mapped KaggleClientError subclass on known status codes.
     """
     api = get_api()
     fn = getattr(api, method_name)
-    kwargs.setdefault("quiet", True)
+    if "quiet" not in kwargs and _accepts_kwarg(fn, "quiet"):
+        kwargs["quiet"] = True
 
     def _run() -> Any:
         try:

@@ -23,9 +23,9 @@ class CredentialError(RuntimeError):
 
 @dataclass(frozen=True)
 class Credentials:
-    username: str
-    source: str  # "env" | "kaggle.json"
-    # NOTE: the key itself is intentionally NOT stored/displayed here.
+    username: str | None  # None when using a token scheme (slug not derivable from the token)
+    source: str  # "env" | "kaggle.json" | "env-token" | "access_token"
+    # NOTE: the key/token itself is intentionally NOT stored/displayed here.
 
 
 def _config_dir() -> Path:
@@ -42,23 +42,30 @@ def kaggle_json_path() -> Path:
     return _config_dir() / "kaggle.json"
 
 
+def access_token_path() -> Path:
+    return _config_dir() / "access_token"
+
+
 def ensure_permissions() -> None:
-    """On POSIX, tighten kaggle.json to 0600 (Kaggle only WARNS on loose perms)."""
-    p = kaggle_json_path()
-    if os.name == "posix" and p.exists():
-        mode = stat.S_IMODE(p.stat().st_mode)
-        if mode & 0o077:
+    """On POSIX, tighten credential files to 0600 (Kaggle only WARNS on loose perms)."""
+    if os.name != "posix":
+        return
+    for p in (kaggle_json_path(), access_token_path()):
+        if p.exists() and stat.S_IMODE(p.stat().st_mode) & 0o077:
             try:
                 p.chmod(0o600)
-                log.info("Tightened %s permissions to 0600", p)
+                log.info("Tightened %s permissions to 0600", p.name)
             except OSError as e:  # pragma: no cover - best effort
-                log.warning("Could not chmod kaggle.json: %s", e)
+                log.warning("Could not chmod %s: %s", p.name, e)
 
 
 def resolve() -> Credentials:
-    """Resolve credentials honoring Kaggle's precedence: env > kaggle.json.
+    """Resolve credentials honoring Kaggle's precedence:
 
-    Raises CredentialError if neither yields a username+key.
+        env user/key  >  kaggle.json  >  KAGGLE_API_TOKEN env  >  access_token file
+
+    Supports both the legacy username/key scheme and the newer opaque API token
+    (KGAT_...) that current Kaggle issues. Raises CredentialError if none found.
     """
     env_user = os.environ.get("KAGGLE_USERNAME")
     env_key = os.environ.get("KAGGLE_KEY")
@@ -73,11 +80,18 @@ def resolve() -> Credentials:
             raise CredentialError(f"kaggle.json is unreadable: {e}") from e
         if data.get("username") and data.get("key"):
             return Credentials(username=data["username"], source="kaggle.json")
-        raise CredentialError("kaggle.json is missing 'username' or 'key'")
+        # malformed kaggle.json: fall through to the token schemes rather than hard-fail
+
+    # Newer token scheme (opaque KGAT_... token); username is not derivable from it.
+    if os.environ.get("KAGGLE_API_TOKEN"):
+        return Credentials(username=None, source="env-token")
+    if access_token_path().exists():
+        return Credentials(username=None, source="access_token")
 
     raise CredentialError(
-        "No Kaggle credentials found. Set KAGGLE_USERNAME and KAGGLE_KEY, "
-        "or place kaggle.json in ~/.kaggle/ (or KAGGLE_CONFIG_DIR)."
+        "No Kaggle credentials found. Set KAGGLE_USERNAME and KAGGLE_KEY, place "
+        "kaggle.json in ~/.kaggle/, or save an API token to ~/.kaggle/access_token "
+        "(or set KAGGLE_API_TOKEN)."
     )
 
 

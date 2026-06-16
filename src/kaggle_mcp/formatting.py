@@ -10,14 +10,22 @@ from typing import Any, Iterable, Sequence
 from . import config
 
 
+def _coerce(v: Any) -> Any:
+    """Make a value JSON-safe: datetimes, enums, etc. -> str."""
+    if isinstance(v, (str, int, float, bool)) or v is None:
+        return v
+    return str(v)
+
+
 def obj_to_dict(obj: Any, fields: Sequence[str]) -> dict[str, Any]:
     """Pull a known set of attributes off an SDK model into a plain dict.
 
-    Uses getattr defensively so missing attributes become None instead of raising.
+    Uses getattr defensively (missing attrs become None) and coerces non-scalar
+    values (datetime, enums) to strings so the result is always JSON-serializable.
     """
     if isinstance(obj, dict):
-        return {f: obj.get(f) for f in fields}
-    return {f: getattr(obj, f, None) for f in fields}
+        return {f: _coerce(obj.get(f)) for f in fields}
+    return {f: _coerce(getattr(obj, f, None)) for f in fields}
 
 
 def cap_list(items: Iterable[Any], limit: int) -> list[Any]:

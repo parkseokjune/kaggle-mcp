@@ -32,7 +32,8 @@ async def _call(name, args=None):
 async def test_live_whoami():
     r = await _call("kaggle_whoami")
     assert r.get("authenticated") is True
-    assert r.get("username")
+    # username is present with legacy creds; None when using an opaque API token.
+    assert "credentialSource" in r
 
 
 async def test_live_search_datasets():

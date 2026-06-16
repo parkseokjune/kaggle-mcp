@@ -18,13 +18,20 @@ uv sync --extra dev          # dev install
 uv run kaggle-mcp            # run locally (stdio)
 ```
 
-Get an API token at <https://www.kaggle.com/settings/api> → **Create New Token** (downloads `kaggle.json`).
-Provide credentials via env vars (preferred) or `~/.kaggle/kaggle.json`:
+Get an API token at <https://www.kaggle.com/settings> → **API** → **Create New Token**.
+The server supports **both** credential schemes (resolved in this order):
 
 ```bash
+# 1) legacy username/key (env or ~/.kaggle/kaggle.json)
 export KAGGLE_USERNAME=your_user
 export KAGGLE_KEY=your_40_char_key
+
+# 2) current API token (KGAT_...): save it where the client reads it automatically
+mkdir -p ~/.kaggle && echo "KGAT_..." > ~/.kaggle/access_token && chmod 600 ~/.kaggle/access_token
+# (or: export KAGGLE_API_TOKEN=KGAT_...)
 ```
+
+Verified working end-to-end against the live Kaggle API (`kaggle` 2.2.2) with both schemes.
 
 ## Register with Claude
 

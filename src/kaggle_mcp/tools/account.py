@@ -23,7 +23,10 @@ def register(mcp: FastMCP) -> None:
             creds = auth.resolve()
         except Exception as e:  # noqa: BLE001
             return error(e)
-        return {"username": creds.username, "authenticated": True, "credentialSource": creds.source}
+        out = {"username": creds.username, "authenticated": True, "credentialSource": creds.source}
+        if creds.username is None:
+            out["note"] = "Authenticated via API token; username is not derivable from the token."
+        return out
 
     @mcp.tool(annotations=anno("Kaggle server status", read_only=True, open_world=False))
     def kaggle_status() -> dict[str, Any]:

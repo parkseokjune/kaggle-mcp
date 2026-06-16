@@ -38,6 +38,19 @@ async def test_call_runs_off_thread_and_forces_quiet(fake_api):
     assert captured["search"] == "nlp"
 
 
+async def test_call_omits_quiet_for_methods_without_it(fake_api):
+    seen = {}
+
+    def competitions_list(group=None, category=None, sort_by=None, page=1, search=None):
+        seen["called"] = True  # no **kwargs and no quiet param
+        return type("R", (), {"competitions": []})()
+
+    fake_api.competitions_list = competitions_list
+    # Would raise TypeError if call() blindly injected quiet=True.
+    await kc.call("competitions_list", search="x")
+    assert seen["called"] is True
+
+
 async def test_call_maps_known_exceptions(fake_api):
     def boom(*args, **kwargs):
         raise _ApiExc(403)

@@ -23,6 +23,16 @@ _COMP_FIELDS = ["ref", "title", "reward", "deadline", "category", "evaluation_me
 _SUB_FIELDS = ["ref", "date", "description", "status", "public_score", "private_score", "file_name"]
 
 
+def _comp_slug(comp: object) -> str | None:
+    """Derive the bare competition slug (e.g. 'titanic') used by download/submit.
+
+    The real API returns `ref` as a full URL (https://.../competitions/titanic),
+    so take the last path segment.
+    """
+    ref = getattr(comp, "ref", "") or getattr(comp, "url", "") or ""
+    return ref.rstrip("/").split("/")[-1] if ref else None
+
+
 def register(mcp: FastMCP) -> None:
     @mcp.tool(annotations=anno("List Kaggle competitions", read_only=True))
     async def kaggle_list_competitions(
@@ -38,9 +48,13 @@ def register(mcp: FastMCP) -> None:
         except Exception as e:  # noqa: BLE001
             return error(e)
         comps = getattr(raw, "competitions", raw) or []  # competitions_list returns a response object
-        rows = [formatting.obj_to_dict(c, _COMP_FIELDS) for c in formatting.cap_list(comps, page_size)]
+        rows = []
+        for c in formatting.cap_list(comps, page_size):
+            d = formatting.obj_to_dict(c, _COMP_FIELDS)
+            d["slug"] = _comp_slug(c)  # the usable id for download/submit
+            rows.append(d)
         env = formatting.paginated(rows, page, page_size)
-        env["markdown"] = formatting.markdown_table(rows, ["ref", "title", "reward", "deadline", "evaluation_metric"])
+        env["markdown"] = formatting.markdown_table(rows, ["slug", "title", "reward", "deadline", "evaluation_metric"])
         return env
 
     @mcp.tool(annotations=anno("Get a competition", read_only=True))
@@ -52,10 +66,11 @@ def register(mcp: FastMCP) -> None:
         except Exception as e:  # noqa: BLE001
             return error(e)
         comps = getattr(raw, "competitions", raw) or []
-        match = next((c for c in comps if getattr(c, "ref", None) == competition), None) or (comps[0] if comps else None)
+        match = next((c for c in comps if _comp_slug(c) == competition), None) or (comps[0] if comps else None)
         if match is None:
             return {"isError": True, "error": f"competition '{competition}' not found"}
         d = formatting.obj_to_dict(match, _COMP_FIELDS)
+        d["slug"] = _comp_slug(match)
         d["rulesUrl"] = f"https://www.kaggle.com/c/{competition}/rules"
         desc = getattr(match, "description", None)
         if desc:

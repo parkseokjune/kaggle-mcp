@@ -30,9 +30,30 @@ def test_resolve_falls_back_to_kaggle_json(tmp_path, monkeypatch):
 def test_resolve_raises_when_missing(tmp_path, monkeypatch):
     monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
     monkeypatch.delenv("KAGGLE_KEY", raising=False)
-    monkeypatch.setenv("KAGGLE_CONFIG_DIR", str(tmp_path))  # empty dir, no file
+    monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
+    monkeypatch.setenv("KAGGLE_CONFIG_DIR", str(tmp_path))  # empty dir, no file/token
     with pytest.raises(auth.CredentialError):
         auth.resolve()
+
+
+def test_resolve_supports_access_token_file(tmp_path, monkeypatch):
+    monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
+    monkeypatch.delenv("KAGGLE_KEY", raising=False)
+    monkeypatch.delenv("KAGGLE_API_TOKEN", raising=False)
+    monkeypatch.setenv("KAGGLE_CONFIG_DIR", str(tmp_path))
+    (tmp_path / "access_token").write_text("KGAT_deadbeef")
+    creds = auth.resolve()
+    assert creds.source == "access_token"
+    assert creds.username is None  # not derivable from an opaque token
+
+
+def test_resolve_supports_env_token(tmp_path, monkeypatch):
+    monkeypatch.delenv("KAGGLE_USERNAME", raising=False)
+    monkeypatch.delenv("KAGGLE_KEY", raising=False)
+    monkeypatch.setenv("KAGGLE_CONFIG_DIR", str(tmp_path))  # no file
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "KGAT_deadbeef")
+    creds = auth.resolve()
+    assert creds.source == "env-token"
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX perms only")
