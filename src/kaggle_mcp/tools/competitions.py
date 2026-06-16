@@ -268,6 +268,79 @@ def register(mcp: FastMCP) -> None:
             return error(e)
         return out
 
+    @mcp.tool(annotations=anno("Competition kickoff bundle", destructive=False))
+    async def kaggle_competition_kickoff(competition: str) -> dict[str, Any]:
+        """One-call competition kickoff: fetch the metric/deadline/rules, download the
+        data if rules are accepted (otherwise tell you to accept first), run a
+        train/test EDA with target auto-detection, and return a baseline plan plus
+        your remaining submission budget. Collapses the manual setup ritual into a
+        single decision-ready bundle — no other Kaggle MCP does this."""
+        try:
+            raw = await kc.call("competitions_list", search=competition, page=1)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        comps = getattr(raw, "competitions", raw) or []
+        match = next((c for c in comps if _comp_slug(c) == competition), None) or (comps[0] if comps else None)
+        if match is None:
+            return {"isError": True, "error": f"competition '{competition}' not found"}
+        slug = _comp_slug(match)
+        deadline = getattr(match, "deadline", None)
+        days_left = (deadline - datetime.now()).days if isinstance(deadline, datetime) else None
+        bundle: dict[str, Any] = {
+            "competition": slug,
+            "title": getattr(match, "title", None),
+            "metric": getattr(match, "evaluation_metric", None),
+            "deadline": str(deadline) if deadline else None,
+            "days_left": days_left,
+            "reward": getattr(match, "reward", None),
+            "max_daily_submissions": getattr(match, "max_daily_submissions", None),
+            "rulesUrl": f"https://www.kaggle.com/c/{slug}/rules",
+            "submission_budget_remaining": BUDGET.remaining(slug),
+        }
+        workdir = kc.new_workdir(prefix="kickoff-")
+        try:
+            await kc.call("competition_download_files", slug, path=str(workdir))
+        except kc.RulesNotAccepted:
+            bundle["data_status"] = "rules_not_accepted"
+            bundle["next_steps"] = [
+                f"Accept the rules at {bundle['rulesUrl']} (legal agreement — do it in the browser).",
+                "Re-run kaggle_competition_kickoff to get the data + EDA.",
+            ]
+            return bundle
+        except Exception as e:  # noqa: BLE001
+            bundle["data_status"] = "download_failed"
+            bundle["data_error"] = redact(str(e))
+            return bundle
+        for z in workdir.glob("*.zip"):
+            try:
+                kc.safe_extract(z, workdir)
+                z.unlink()
+            except ValueError as e:
+                return error(e)
+        bundle["data_status"] = "ready"
+        bundle["localDir"] = str(workdir)
+        train = next(iter(workdir.rglob("train.csv")), None)
+        test = next(iter(workdir.rglob("test.csv")), None)
+        target = ""
+        if train and test:
+            try:
+                diff = await asyncio.to_thread(eda.schema_diff, train, test)
+                bundle["schema_diff"] = diff
+                target = diff.get("inferred_target") or ""
+            except Exception as e:  # noqa: BLE001
+                bundle["schema_diff_error"] = str(e)
+        try:
+            bundle["eda"] = await asyncio.to_thread(eda.summarize_dir, workdir, target or None, 5)
+        except Exception as e:  # noqa: BLE001
+            bundle["eda_error"] = str(e)
+        bundle["next_steps"] = [
+            f"Target appears to be '{target}'." if target else "Identify the target column.",
+            f"Build a baseline optimizing for: {bundle['metric']}.",
+            "Generate predictions, then kaggle_preview_submission -> kaggle_submit_to_competition.",
+            f"{bundle['submission_budget_remaining']} submissions left in this session's budget.",
+        ]
+        return bundle
+
     @mcp.tool(annotations=anno("Submission best-score digest", read_only=True))
     async def kaggle_submission_best_score(competition: str, higher_is_better: bool = True) -> dict[str, Any]:
         """Reduce raw submission history to the decision signal: best public score

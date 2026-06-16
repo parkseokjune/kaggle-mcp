@@ -28,11 +28,12 @@ claude mcp add --transport stdio kaggle -- uvx --from safe-kaggle-mcp kaggle-mcp
 | **Submission best-score** digest (metric-aware best/trend/failures) | ✅ **Yes** | ❌ Raw list | ❌ Raw list |
 | **Leaderboard delta tracking** (local snapshots + rank moves) | ✅ **Yes** | ❌ No | ❌ No API endpoint either |
 | Session **audit ledger** of mutating actions (redacted) | ✅ **Yes** | ❌ No | ❌ No |
-| Read-only **discussion digest**, prompt-injection-fenced | ✅ **Yes** (untrusted-fenced) | ⚠️ Yes but **unfenced** (Galaxy-Dawn) | ⚠️ Unfenced |
+| Read-only **discussion + write-up digest**, injection-fenced | ✅ **Yes** (untrusted-fenced) | ⚠️ Yes but **unfenced** (Galaxy-Dawn) | ⚠️ Unfenced |
+| **One-call competition kickoff** (data + EDA + baseline plan) | ✅ **Yes** | ❌ No | ❌ No |
 | Output discipline (ranked/capped tables, pagination, top-N) | ✅ **Yes** | ❌ Undocumented | ❌ Client's job |
 | Modern `KGAT_` token + legacy username/key auth | ✅ **Both** | ⚠️ Mostly legacy-only | ✅ OAuth 2.0 |
 | Install | Local stdio (PyPI + git, `uvx`) | Local (pip/uv) | ✅ Zero-install remote |
-| Raw tool breadth | 39 tools (no benchmarks yet) | up to ~51 | ~35–57 |
+| Raw tool breadth | 41 tools (no benchmark listing — API exposes none) | up to ~51 | ~35–57 |
 
 The two honest places we don't lead: the **official** remote server is zero-install, and the broadest **community** server (Galaxy-Dawn, ~51 tools) has more raw endpoints (e.g. benchmarks). Where they expose ~10 forum tools *unfenced*, we expose read-only discussion **search + read** with every body fenced as `<untrusted-content>` — and no posting tool, because [the API has none](#what-it-wont-do-honest-limits).
 
@@ -50,6 +51,8 @@ Drive your whole Kaggle workflow from a Claude chat, in plain language:
 | *"Is it worth iterating — what's my best score so far?"* | `kaggle_submission_best_score` (metric-aware best/trend/failures + today's budget) |
 | *"Did anyone pass me on the leaderboard since last check?"* | `kaggle_leaderboard_track` (snapshot deltas, who passed you) |
 | *"What techniques are people discussing for this competition?"* | `kaggle_search_discussions` → `kaggle_get_discussion` (read-only, every post untrusted-fenced) |
+| *"Find the winning solution write-ups for this competition."* | `kaggle_search_writeups` → `kaggle_get_discussion` |
+| *"Kick off this competition for me."* | `kaggle_competition_kickoff` — one call: metric + rules + data download + train/test EDA (auto-target) + baseline plan + budget |
 | *"What mutating actions have I taken this session?"* | `kaggle_audit_log` (redacted ledger of every submit/create/delete) |
 | *"Run this notebook on Kaggle's free GPU and get the output."* | `kaggle_push_kernel` → `kaggle_kernel_status` → `kaggle_kernel_output` |
 | *"Save my engineered features as a private dataset version."* | `kaggle_version_dataset` — **private by default** |
@@ -110,9 +113,9 @@ Even when enabled, each destructive call still needs a one-time `confirm_token` 
 
 ## Tools
 
-**39 tools** across account, competitions, datasets, discussions, kernels, models — plus `kaggle://` resources (metadata, leaderboard, rules) and `/kaggle-eda`, `/kaggle-submit-checklist`, `/kaggle-landscape`, `/kaggle-solution-research` prompts. Run `kaggle_status` to see your auth + submission budget.
+**41 tools** across account, competitions, datasets, discussions, kernels, models — plus `kaggle://` resources (metadata, leaderboard, rules) and `/kaggle-eda`, `/kaggle-submit-checklist`, `/kaggle-landscape`, `/kaggle-solution-research` prompts. Run `kaggle_status` to see your auth + submission budget.
 
-Verified live against the Kaggle API (`kaggle` 2.2.2) with both auth schemes; 50 offline + 5 live read-only tests pass.
+Verified live against the Kaggle API (`kaggle` 2.2.2) with both auth schemes; 53 offline + 6 live read-only tests pass.
 
 ## Develop
 

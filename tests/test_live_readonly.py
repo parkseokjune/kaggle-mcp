@@ -61,3 +61,9 @@ async def test_live_search_and_read_discussion():
     d = await _call("kaggle_get_discussion", {"topic_id": tid, "max_messages": 2})
     assert d["message_count"] >= 1
     assert "<untrusted-content>" in d["messages"][0]["content"]  # injection-safe fencing
+
+
+async def test_live_search_writeups():
+    r = await _call("kaggle_search_writeups", {"search": "titanic", "page_size": 3})
+    assert r["count"] >= 1
+    assert "UNTRUSTED" in r["note"]

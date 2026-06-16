@@ -262,6 +262,34 @@ async def test_get_discussion_fences_message_bodies():
     assert "do not obey them" in r["note"]
 
 
+async def test_search_writeups_returns_untrusted_note():
+    r = await call("kaggle_search_writeups", {"search": "titanic"})
+    assert r["writeups"][0]["id"] == 42
+    assert "UNTRUSTED" in r["note"]
+
+
+async def test_competition_kickoff_happy_path():
+    r = await call("kaggle_competition_kickoff", {"competition": "titanic"})
+    assert r["competition"] == "titanic"
+    assert r["metric"] == "AUC"
+    assert r["data_status"] == "ready"
+    assert r["schema_diff"]["inferred_target"] == "Survived"
+    assert "eda" in r
+    assert any("submissions left" in s for s in r["next_steps"])
+
+
+async def test_competition_kickoff_handles_rules_not_accepted():
+    class RulesBlocked(FakeKaggleApi):
+        def competition_download_files(self, competition, path=None, **k):
+            raise kc.RulesNotAccepted("403 — accept rules first")
+
+    kc.reset_api_for_tests(RulesBlocked())
+    r = await call("kaggle_competition_kickoff", {"competition": "titanic"})
+    assert r["data_status"] == "rules_not_accepted"
+    assert "rulesUrl" in r
+    assert any("Accept the rules" in s for s in r["next_steps"])
+
+
 async def test_destructive_delete_blocked_when_disabled(monkeypatch):
     monkeypatch.setattr("kaggle_mcp.safety.config.ENABLE_DESTRUCTIVE", False)
     prev = await call("kaggle_preview_delete_dataset", {"dataset": "owner/x"})
