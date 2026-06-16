@@ -49,6 +49,17 @@
         "properties": {},
         "title": "kaggle_whoamiArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_whoamiDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Who am I (Kaggle)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -58,6 +69,17 @@
         "properties": {},
         "title": "kaggle_statusArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_statusDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Kaggle server status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -73,6 +95,17 @@
         },
         "title": "kaggle_audit_logArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_audit_logDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Audit log of mutating actions",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -113,6 +146,17 @@
         },
         "title": "kaggle_list_competitionsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_list_competitionsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "List Kaggle competitions",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -143,6 +187,17 @@
         },
         "title": "kaggle_competition_landscapeArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_competition_landscapeDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Competition landscape report",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -160,6 +215,17 @@
         ],
         "title": "kaggle_get_competitionArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_get_competitionDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Get a competition",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -182,6 +248,17 @@
         ],
         "title": "kaggle_competition_leaderboardArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_competition_leaderboardDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Competition leaderboard",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -209,6 +286,17 @@
         ],
         "title": "kaggle_leaderboard_trackArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_leaderboard_trackDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Track leaderboard (snapshot + deltas)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -236,6 +324,17 @@
         ],
         "title": "kaggle_download_competition_filesArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_download_competition_filesDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Download competition files",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -263,6 +362,17 @@
         ],
         "title": "kaggle_eda_competitionArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_eda_competitionDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "EDA a competition (data + train/test diff)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -280,6 +390,17 @@
         ],
         "title": "kaggle_competition_kickoffArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_competition_kickoffDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Competition kickoff bundle",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -302,6 +423,17 @@
         ],
         "title": "kaggle_submission_best_scoreArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_submission_best_scoreDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Submission best-score digest",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -319,6 +451,17 @@
         ],
         "title": "kaggle_accept_competition_rulesArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_accept_competition_rulesDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Accept competition rules (relay)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -346,6 +489,17 @@
         ],
         "title": "kaggle_preview_submissionArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_preview_submissionDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Preview a submission (dry-run)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -378,6 +532,18 @@
         ],
         "title": "kaggle_submit_to_competitionArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_submit_to_competitionDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Submit to competition",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -400,6 +566,17 @@
         ],
         "title": "kaggle_list_submissionsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_list_submissionsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "List submissions",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -427,6 +604,17 @@
         ],
         "title": "kaggle_get_submission_scoreArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_get_submission_scoreDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Get submission score (poll)",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -464,6 +652,17 @@
         ],
         "title": "kaggle_search_datasetsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_search_datasetsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Search datasets",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -481,6 +680,17 @@
         ],
         "title": "kaggle_get_dataset_metadataArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_get_dataset_metadataDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Get dataset metadata",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -508,6 +718,17 @@
         ],
         "title": "kaggle_download_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_download_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Download dataset",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -540,6 +761,17 @@
         ],
         "title": "kaggle_eda_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_eda_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "EDA a dataset (compact local summary)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -567,6 +799,17 @@
         ],
         "title": "kaggle_dataset_previewArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_dataset_previewDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Preview dataset rows (capped)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -594,6 +837,17 @@
         ],
         "title": "kaggle_create_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_create_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Create dataset (private)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -611,6 +865,17 @@
         ],
         "title": "kaggle_preview_publish_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_preview_publish_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Preview public dataset publish",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -638,6 +903,18 @@
         ],
         "title": "kaggle_version_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_version_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Version dataset",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -655,6 +932,17 @@
         ],
         "title": "kaggle_dataset_statusArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_dataset_statusDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Dataset status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -677,6 +965,18 @@
         ],
         "title": "kaggle_delete_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_delete_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Delete dataset",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -694,6 +994,17 @@
         ],
         "title": "kaggle_preview_delete_datasetArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_preview_delete_datasetDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Preview dataset delete",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     },
     {
@@ -724,6 +1035,17 @@
         },
         "title": "kaggle_search_discussionsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_search_discussionsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Search Kaggle discussions",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -749,6 +1071,17 @@
         },
         "title": "kaggle_search_writeupsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_search_writeupsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Search competition write-ups",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -771,6 +1104,17 @@
         ],
         "title": "kaggle_get_discussionArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_get_discussionDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Read a discussion thread",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -816,6 +1160,17 @@
         },
         "title": "kaggle_list_kernelsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_list_kernelsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "List kernels",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -838,6 +1193,17 @@
         ],
         "title": "kaggle_pull_kernelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_pull_kernelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Pull kernel source",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -855,6 +1221,18 @@
         ],
         "title": "kaggle_push_kernelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_push_kernelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Push kernel (run on Kaggle)",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -872,6 +1250,17 @@
         ],
         "title": "kaggle_kernel_statusArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_kernel_statusDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Kernel run status",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -894,6 +1283,17 @@
         ],
         "title": "kaggle_kernel_outputArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_kernel_outputDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Download kernel output",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -929,6 +1329,17 @@
         },
         "title": "kaggle_list_modelsArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_list_modelsDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "List models",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -946,6 +1357,17 @@
         ],
         "title": "kaggle_get_modelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_get_modelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Get model",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -963,6 +1385,17 @@
         ],
         "title": "kaggle_download_modelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_download_modelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Download model version",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -985,6 +1418,18 @@
         ],
         "title": "kaggle_delete_modelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_delete_modelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Delete model",
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
       }
     },
     {
@@ -1002,6 +1447,17 @@
         ],
         "title": "kaggle_preview_delete_modelArguments",
         "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "kaggle_preview_delete_modelDictOutput",
+        "type": "object"
+      },
+      "annotations": {
+        "title": "Preview model delete",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
       }
     }
   ],
