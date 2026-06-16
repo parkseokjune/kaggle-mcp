@@ -61,18 +61,23 @@ Verified working end-to-end against the live Kaggle API (`kaggle` 2.2.2) with bo
 
 ## Register with Claude
 
+> The PyPI distribution is **`safe-kaggle-mcp`** (the name `kaggle-mcp` was taken); the
+> command it installs is still `kaggle-mcp`, so launch it with `uvx --from safe-kaggle-mcp kaggle-mcp`.
+> Or skip PyPI entirely and install straight from this repo:
+> `uvx --from git+https://github.com/parkseokjune/kaggle-mcp@v0.1.0 kaggle-mcp`.
+
 **Claude Code:**
 ```bash
 claude mcp add --transport stdio \
   --env KAGGLE_USERNAME=your_user --env KAGGLE_KEY=your_key \
-  kaggle -- uvx kaggle-mcp
+  kaggle -- uvx --from safe-kaggle-mcp kaggle-mcp
 claude mcp list      # expect: kaggle  ✓ Connected
 ```
 
 **Claude Desktop** — edit `claude_desktop_config.json`, then fully restart:
 ```json
 { "mcpServers": { "kaggle": {
-  "command": "uvx", "args": ["kaggle-mcp"],
+  "command": "uvx", "args": ["--from", "safe-kaggle-mcp", "kaggle-mcp"],
   "env": { "KAGGLE_USERNAME": "your_user", "KAGGLE_KEY": "your_key" } } } }
 ```
 

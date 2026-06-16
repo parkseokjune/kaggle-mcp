@@ -3,7 +3,7 @@
     "kaggle": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["kaggle-mcp"],
+      "args": ["--from", "safe-kaggle-mcp", "kaggle-mcp"],
       "env": {
         "KAGGLE_USERNAME": "REPLACE_ME",
         "KAGGLE_KEY": "REPLACE_ME"
