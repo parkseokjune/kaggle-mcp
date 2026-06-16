@@ -3,6 +3,12 @@
 All notable changes to **safe-kaggle-mcp** are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1]
+### Added
+- MCP Registry support: `server.json` manifest, `<!-- mcp-name: io.github.parkseokjune/kaggle-mcp -->` PyPI-ownership marker in the README, and a `publish-mcp.yml` GitHub Action that publishes to registry.modelcontextprotocol.io headlessly via OIDC on every `v*` tag.
+- `safe-kaggle-mcp` console-script alias so `uvx safe-kaggle-mcp` works directly (matches the registry's default pypi runtime).
+- `glama.json` + `smithery.yaml` for Glama and Smithery listings.
+
 ## [0.4.0]
 ### Added
 - `kaggle_search_writeups` — search competition solution write-ups (the highest-signal strategy source), untrusted-fenced.

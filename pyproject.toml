@@ -2,7 +2,7 @@
 # Distribution name on PyPI ('kaggle-mcp' was already taken). The console command
 # and import package remain `kaggle-mcp` / `kaggle_mcp`.
 name = "safe-kaggle-mcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "A safety-first MCP server connecting Claude to Kaggle (competitions, datasets, kernels, models)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,6 +39,9 @@ Issues = "https://github.com/parkseokjune/kaggle-mcp/issues"
 [project.scripts]
 # `uvx kaggle-mcp` and the client config `command` resolve to this entry point.
 kaggle-mcp = "kaggle_mcp.server:main"
+# Alias matching the PyPI distribution name, so `uvx safe-kaggle-mcp` works directly
+# (this is the command the MCP registry's default pypi runtime invokes).
+safe-kaggle-mcp = "kaggle_mcp.server:main"
 
 [build-system]
 requires = ["hatchling"]

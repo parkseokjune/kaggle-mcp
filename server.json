@@ -1,0 +1,65 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.parkseokjune/kaggle-mcp",
+  "title": "Safe Kaggle MCP",
+  "description": "Safety-first Kaggle MCP server (41 tools) for competitions, datasets, kernels, models, and discussions over stdio. Gates every destructive/publish action behind a two-call confirm token, caps submissions, fences untrusted Kaggle text, and keeps credentials out of the model context.",
+  "version": "0.4.1",
+  "repository": {
+    "url": "https://github.com/parkseokjune/kaggle-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "safe-kaggle-mcp",
+      "version": "0.4.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "KAGGLE_USERNAME",
+          "description": "Kaggle account username (legacy scheme; pair with KAGGLE_KEY). Optional — read-only tools work without credentials.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "KAGGLE_KEY",
+          "description": "Kaggle API key, the 40-char 'key' from kaggle.json (legacy scheme; pair with KAGGLE_USERNAME).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "KAGGLE_API_TOKEN",
+          "description": "Modern Kaggle KGAT_... token (alternative to KAGGLE_USERNAME/KAGGLE_KEY). Optional.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "KAGGLE_MCP_ENABLE_DESTRUCTIVE",
+          "description": "Set to 1 to expose delete tools. Default 0 (off).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "KAGGLE_MCP_ENABLE_PUBLISH",
+          "description": "Set to 1 to allow making datasets/kernels public. Default 0 (off).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "KAGGLE_MCP_SUBMISSION_CAP",
+          "description": "Daily per-competition submission budget. Default 5.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

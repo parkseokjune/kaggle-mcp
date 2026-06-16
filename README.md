@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.parkseokjune/kaggle-mcp -->
+
 # kaggle-mcp
 
 [![CI](https://github.com/parkseokjune/kaggle-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/parkseokjune/kaggle-mcp/actions/workflows/ci.yml)

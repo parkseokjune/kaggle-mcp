@@ -1,0 +1,36 @@
+# Smithery configuration: https://smithery.ai/docs/build/project-config/smithery.yaml
+# Stdio server distributed via PyPI (safe-kaggle-mcp) and launched with uvx.
+# No Dockerfile is needed for a pure stdio command server.
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema for user-supplied config. Credentials are OPTIONAL:
+    # read-only tools work unauthenticated; auth-required tools need them.
+    type: object
+    properties:
+      kaggleUsername:
+        type: string
+        description: Your Kaggle username (the 'username' field in kaggle.json). Optional.
+      kaggleKey:
+        type: string
+        description: Your Kaggle API key (the 40-char 'key' field in kaggle.json). Optional.
+      kaggleApiToken:
+        type: string
+        description: Modern Kaggle KGAT_... token, alternative to username/key. Optional.
+  commandFunction:
+    # Returns the CLI command to start the MCP over stdio.
+    |-
+    (config) => ({
+      command: 'uvx',
+      args: ['--from', 'safe-kaggle-mcp', 'kaggle-mcp'],
+      env: Object.assign(
+        {},
+        config.kaggleUsername ? { KAGGLE_USERNAME: config.kaggleUsername } : {},
+        config.kaggleKey ? { KAGGLE_KEY: config.kaggleKey } : {},
+        config.kaggleApiToken ? { KAGGLE_API_TOKEN: config.kaggleApiToken } : {}
+      )
+    })
+  exampleConfig:
+    kaggleUsername: your_kaggle_username
+    kaggleKey: 0123456789abcdef0123456789abcdef
