@@ -2,23 +2,38 @@
   "manifest_version": "0.4",
   "name": "safe-kaggle-mcp",
   "display_name": "Safe Kaggle MCP",
-  "version": "0.4.1",
-  "description": "Safety-first Kaggle MCP — confirm-gated destructive ops, submission budget, injection-fenced.",
-  "long_description": "A safety-first Model Context Protocol server connecting Claude to Kaggle (competitions, datasets, kernels, models, discussions). Gates every irreversible action (submit/delete/publish) behind a two-call confirm token, caps submissions per competition, fences all Kaggle-returned text as untrusted content, and keeps credentials out of the model context. 41 tools. Distributed on PyPI as safe-kaggle-mcp and run locally with uvx.",
+  "version": "0.4.2",
+  "description": "Safety-first Kaggle MCP (41 tools): confirm-gated submit/delete, submission budget, prompt-injection fenced.",
+  "long_description": "## Safe Kaggle MCP\n\nA **safety-first** MCP server connecting Claude to Kaggle — competitions, datasets, kernels (notebooks), models, and discussions. **41 tools.**\n\nUnlike other Kaggle MCP servers, every irreversible action is guarded:\n\n- **Two-call confirm tokens** for submit / delete / public-publish — an agent can't fire a destructive call in one shot.\n- **Per-competition submission budget** (default 5/day) surfaced in every response, so an iterating agent can't burn your daily quota.\n- **Private-by-default** creation; destructive/publish tools stay off behind env flags.\n- **Prompt-injection hardening** — all Kaggle-returned text (descriptions, forum posts, notebook source) is fenced as `<untrusted-content>`.\n- **Zip-slip-safe** sandboxed downloads; **credential redaction**; the API key never enters the model context.\n\n### Highlights other servers don't ship\n- `kaggle_competition_kickoff` — one call: metric + rules + data download + train/test EDA (auto-detects the target) + baseline plan.\n- `kaggle_eda_dataset` / `kaggle_eda_competition` — compact pandas digests (shape, dtypes, missingness, correlations), never raw rows.\n- `kaggle_competition_landscape` — deadline-sorted triage report.\n- `kaggle_leaderboard_track` — local snapshots with rank deltas (Kaggle has no historical API).\n- `kaggle_search_writeups` + `kaggle_search_discussions` — research winning solutions, every post untrusted-fenced.\n- `kaggle_audit_log` — a redacted ledger of every mutating action.\n\n### Setup\nInstall: `uvx --from safe-kaggle-mcp kaggle-mcp`. Provide a Kaggle token via `KAGGLE_API_TOKEN` (or `KAGGLE_USERNAME`/`KAGGLE_KEY`, or `~/.kaggle/`). Read-only tools work without credentials.\n\nSource & docs: https://github.com/parkseokjune/kaggle-mcp · also on PyPI (`safe-kaggle-mcp`) and the official MCP Registry (`io.github.parkseokjune/kaggle-mcp`).",
   "author": {
     "name": "parkseokjune",
     "url": "https://github.com/parkseokjune"
   },
   "homepage": "https://github.com/parkseokjune/kaggle-mcp",
   "documentation": "https://github.com/parkseokjune/kaggle-mcp#readme",
+  "support": "https://github.com/parkseokjune/kaggle-mcp/issues",
   "license": "MIT",
-  "keywords": ["kaggle", "mcp", "claude", "competitions", "datasets", "safety"],
+  "keywords": [
+    "kaggle",
+    "mcp",
+    "claude",
+    "competitions",
+    "datasets",
+    "kernels",
+    "models",
+    "safety",
+    "data-science"
+  ],
   "server": {
     "type": "python",
     "entry_point": "kaggle_mcp.server",
     "mcp_config": {
       "command": "uvx",
-      "args": ["--from", "safe-kaggle-mcp", "kaggle-mcp"],
+      "args": [
+        "--from",
+        "safe-kaggle-mcp",
+        "kaggle-mcp"
+      ],
       "env": {
         "KAGGLE_USERNAME": "${user_config.kaggle_username}",
         "KAGGLE_KEY": "${user_config.kaggle_key}",
@@ -26,6 +41,971 @@
       }
     }
   },
+  "tools": [
+    {
+      "name": "kaggle_whoami",
+      "description": "Return the authenticated Kaggle username and credential source. Does not transmit or echo the API key. Use to confirm the server resolved credentials for the…",
+      "inputSchema": {
+        "properties": {},
+        "title": "kaggle_whoamiArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_status",
+      "description": "Health check: credential validity, current per-competition submission budgets for this session, enabled safety switches, and the work-dir root.",
+      "inputSchema": {
+        "properties": {},
+        "title": "kaggle_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_audit_log",
+      "description": "Return the session's append-only ledger of mutating actions (submit / create / version / delete) with timestamps and the submission budget at the time — ever…",
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_audit_logArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_list_competitions",
+      "description": "List/triage competitions as a compact ranked table (title, slug, prize, deadline, evaluation metric, category). Paginated. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "group": {
+            "default": "",
+            "title": "Group",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 20,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_list_competitionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_competition_landscape",
+      "description": "Pre-digested triage report of competitions: for each, the slug, prize, evaluation metric, deadline, and **days_left** — sorted by soonest deadline so you can…",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "limit": {
+            "default": 15,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "include_ended": {
+            "default": false,
+            "title": "Include Ended",
+            "type": "boolean"
+          }
+        },
+        "title": "kaggle_competition_landscapeArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_get_competition",
+      "description": "Fetch one competition's details and a truncated, untrusted-wrapped rules digest. `competition` is the BARE slug (e.g. 'titanic'). Read-only.",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_get_competitionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_competition_leaderboard",
+      "description": "Public leaderboard capped to top-N (default 20) to protect context.",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "top_n": {
+            "default": 20,
+            "title": "Top N",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_competition_leaderboardArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_leaderboard_track",
+      "description": "Snapshot the public top-N and diff it against the LAST snapshot you took: per-team rank deltas, new entrants, biggest climbers, and (if your_team is given) y…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "top_n": {
+            "default": 20,
+            "title": "Top N",
+            "type": "integer"
+          },
+          "your_team": {
+            "default": "",
+            "title": "Your Team",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_leaderboard_trackArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_download_competition_files",
+      "description": "Download competition data into an isolated work dir (zip auto-extracted with a zip-slip guard). Returns local paths + metadata, NOT file contents. Requires t…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "file": {
+            "default": "",
+            "title": "File",
+            "type": "string"
+          },
+          "unzip": {
+            "default": true,
+            "title": "Unzip",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_download_competition_filesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_eda_competition",
+      "description": "Download a competition's data and return a pre-first-submission view: a compact pandas digest per CSV (shape/dtypes/missingness/correlations) PLUS a train-vs…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "target": {
+            "default": "",
+            "title": "Target",
+            "type": "string"
+          },
+          "max_files": {
+            "default": 5,
+            "title": "Max Files",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_eda_competitionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_competition_kickoff",
+      "description": "One-call competition kickoff: fetch the metric/deadline/rules, download the data if rules are accepted (otherwise tell you to accept first), run a train/test…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_competition_kickoffArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_submission_best_score",
+      "description": "Reduce raw submission history to the decision signal: best public score (respecting metric direction), first/best/latest trend, today's submission count, and…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "higher_is_better": {
+            "default": true,
+            "title": "Higher Is Better",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_submission_best_scoreArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_accept_competition_rules",
+      "description": "There is NO API to accept competition rules (it is a legal agreement). This returns the rules URL and instructs the user to accept it manually in the browser…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_accept_competition_rulesArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_preview_submission",
+      "description": "Dry-run a submission: validate the file exists/size, report the budget impact, and return a single-use confirm_token required by kaggle_submit_to_competition…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "file_path": {
+            "title": "File Path",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition",
+          "file_path",
+          "message"
+        ],
+        "title": "kaggle_preview_submissionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_submit_to_competition",
+      "description": "Submit a predictions file. GATED: requires a valid confirm_token from kaggle_preview_submission AND available submission budget (~5/day/team). Consumes a dai…",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "file_path": {
+            "title": "File Path",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "confirm_token": {
+            "title": "Confirm Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "competition",
+          "file_path",
+          "message",
+          "confirm_token"
+        ],
+        "title": "kaggle_submit_to_competitionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_list_submissions",
+      "description": "List submission history with status and scores. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "limit": {
+            "default": 20,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_list_submissionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_get_submission_score",
+      "description": "Poll the newest submission until scoring completes (bounded polling with backoff — NOT a hot loop) and return its public score. Closes the submit loop.",
+      "inputSchema": {
+        "properties": {
+          "competition": {
+            "title": "Competition",
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 120,
+            "title": "Timeout S",
+            "type": "integer"
+          },
+          "interval_s": {
+            "default": 6,
+            "title": "Interval S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "competition"
+        ],
+        "title": "kaggle_get_submission_scoreArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_search_datasets",
+      "description": "Search datasets; return top ~10 as a compact ranked table (ref, title, downloads, updated, usability) — not raw JSON. Paginated.",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "title": "Search",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "hottest",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "file_type": {
+            "default": "",
+            "title": "File Type",
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 10,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "search"
+        ],
+        "title": "kaggle_search_datasetsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_get_dataset_metadata",
+      "description": "Fetch a dataset's metadata + file listing. `dataset` is 'owner/slug'. Description text is untrusted-wrapped and truncated. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_get_dataset_metadataArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_download_dataset",
+      "description": "Download a dataset (or single file) into an isolated work dir; zip auto-extracted with a zip-slip guard. Returns local paths + metadata.",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "file": {
+            "default": "",
+            "title": "File",
+            "type": "string"
+          },
+          "unzip": {
+            "default": true,
+            "title": "Unzip",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_download_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_eda_dataset",
+      "description": "Download a dataset and return a COMPACT exploratory summary — shape, dtypes, missingness, target distribution, and top numeric correlations — computed locall…",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "file": {
+            "default": "",
+            "title": "File",
+            "type": "string"
+          },
+          "target": {
+            "default": "",
+            "title": "Target",
+            "type": "string"
+          },
+          "max_files": {
+            "default": 5,
+            "title": "Max Files",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_eda_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_dataset_preview",
+      "description": "Safe first-N-rows preview of a dataset CSV — headers, dtypes, and up to `n` (<=50) width-capped rows, wrapped as untrusted content. 'What does the data look …",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "file": {
+            "default": "",
+            "title": "File",
+            "type": "string"
+          },
+          "n": {
+            "default": 5,
+            "title": "N",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_dataset_previewArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_create_dataset",
+      "description": "Create a NEW dataset from a local folder. PRIVATE by default. Making it public requires KAGGLE_MCP_ENABLE_PUBLISH=1 AND a confirm_token from a preview. Async…",
+      "inputSchema": {
+        "properties": {
+          "folder": {
+            "title": "Folder",
+            "type": "string"
+          },
+          "public": {
+            "default": false,
+            "title": "Public",
+            "type": "boolean"
+          },
+          "confirm_token": {
+            "default": "",
+            "title": "Confirm Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "title": "kaggle_create_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_preview_publish_dataset",
+      "description": "Issue a confirm_token to publish a dataset publicly. Surfaces that the data WILL become world-visible. No side effects.",
+      "inputSchema": {
+        "properties": {
+          "folder": {
+            "title": "Folder",
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "title": "kaggle_preview_publish_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_version_dataset",
+      "description": "Push a new version/revision of an existing dataset from a local folder (persists engineered features across runs). Async; non-destructive (adds a version).",
+      "inputSchema": {
+        "properties": {
+          "folder": {
+            "title": "Folder",
+            "type": "string"
+          },
+          "version_notes": {
+            "title": "Version Notes",
+            "type": "string"
+          },
+          "delete_old_versions": {
+            "default": false,
+            "title": "Delete Old Versions",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "folder",
+          "version_notes"
+        ],
+        "title": "kaggle_version_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_dataset_status",
+      "description": "Poll the processing status of a dataset create/version op. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_dataset_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_delete_dataset",
+      "description": "Delete a dataset and ALL its versions — IRREVERSIBLE. Disabled unless the server was started with KAGGLE_MCP_ENABLE_DESTRUCTIVE=1, AND requires a confirm_tok…",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          },
+          "confirm_token": {
+            "title": "Confirm Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset",
+          "confirm_token"
+        ],
+        "title": "kaggle_delete_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_preview_delete_dataset",
+      "description": "Issue a confirm_token for an irreversible dataset delete. No side effects.",
+      "inputSchema": {
+        "properties": {
+          "dataset": {
+            "title": "Dataset",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "title": "kaggle_preview_delete_datasetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_search_discussions",
+      "description": "Search/list Kaggle discussion topics. Returns a compact table (title, author, votes, comments, forum, url). READ-ONLY — there is intentionally no post/reply/…",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "category": {
+            "default": "",
+            "title": "Category",
+            "type": "string"
+          },
+          "page_size": {
+            "default": 20,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_search_discussionsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_search_writeups",
+      "description": "Search competition SOLUTION write-ups — the post-competition explanations of what actually won. The highest-signal source for strategy research; pairs with t…",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "top",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "page_size": {
+            "default": 20,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_search_writeupsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_get_discussion",
+      "description": "Read a discussion topic's messages. Each message body is fenced as <untrusted-content> and truncated. READ-ONLY — no reply/comment/vote.",
+      "inputSchema": {
+        "properties": {
+          "topic_id": {
+            "title": "Topic Id",
+            "type": "integer"
+          },
+          "max_messages": {
+            "default": 10,
+            "title": "Max Messages",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topic_id"
+        ],
+        "title": "kaggle_get_discussionArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_list_kernels",
+      "description": "List/search notebooks (kernels) as a compact table. Paginated. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "mine": {
+            "default": false,
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "language": {
+            "default": "",
+            "title": "Language",
+            "type": "string"
+          },
+          "kernel_type": {
+            "default": "",
+            "title": "Kernel Type",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 20,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_list_kernelsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_pull_kernel",
+      "description": "Pull a kernel's source (and optionally metadata) into a local work dir. Source code is untrusted-wrapped and truncated. `kernel` is 'owner/slug'.",
+      "inputSchema": {
+        "properties": {
+          "kernel": {
+            "title": "Kernel",
+            "type": "string"
+          },
+          "with_metadata": {
+            "default": false,
+            "title": "With Metadata",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kernel"
+        ],
+        "title": "kaggle_pull_kernelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_push_kernel",
+      "description": "Push (create/update AND queue-run) a notebook from a local folder, using Kaggle's free GPU/TPU. Requires a valid kernel-metadata.json. PRIVATE by default (se…",
+      "inputSchema": {
+        "properties": {
+          "folder": {
+            "title": "Folder",
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "title": "kaggle_push_kernelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_kernel_status",
+      "description": "Poll a kernel run's status (running|complete|error|cancelAcknowledged).",
+      "inputSchema": {
+        "properties": {
+          "kernel": {
+            "title": "Kernel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kernel"
+        ],
+        "title": "kaggle_kernel_statusArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_kernel_output",
+      "description": "Download a completed kernel's output files and logs into a local work dir. Log tail is untrusted-wrapped and truncated. Read-only fetch.",
+      "inputSchema": {
+        "properties": {
+          "kernel": {
+            "title": "Kernel",
+            "type": "string"
+          },
+          "file_pattern": {
+            "default": "",
+            "title": "File Pattern",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kernel"
+        ],
+        "title": "kaggle_kernel_outputArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_list_models",
+      "description": "List/search published models as a compact table. Paginated. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "search": {
+            "default": "",
+            "title": "Search",
+            "type": "string"
+          },
+          "owner": {
+            "default": "",
+            "title": "Owner",
+            "type": "string"
+          },
+          "sort_by": {
+            "default": "",
+            "title": "Sort By",
+            "type": "string"
+          },
+          "page": {
+            "default": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "default": 20,
+            "title": "Page Size",
+            "type": "integer"
+          }
+        },
+        "title": "kaggle_list_modelsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_get_model",
+      "description": "Fetch a model's metadata and instances/variations. `model` is 'owner/slug'. Description is untrusted-wrapped. Read-only.",
+      "inputSchema": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "kaggle_get_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_download_model",
+      "description": "Download a specific model instance version's artifacts into a work dir. `model_version` is 'owner/model/framework/variation/version'. Returns paths.",
+      "inputSchema": {
+        "properties": {
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model_version"
+        ],
+        "title": "kaggle_download_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_delete_model",
+      "description": "Delete a model — IRREVERSIBLE. Disabled unless KAGGLE_MCP_ENABLE_DESTRUCTIVE=1, and requires a confirm_token from kaggle_preview_delete_model.",
+      "inputSchema": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "confirm_token": {
+            "title": "Confirm Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model",
+          "confirm_token"
+        ],
+        "title": "kaggle_delete_modelArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "kaggle_preview_delete_model",
+      "description": "Issue a confirm_token for an irreversible model delete. No side effects.",
+      "inputSchema": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "kaggle_preview_delete_modelArguments",
+        "type": "object"
+      }
+    }
+  ],
+  "tools_generated": false,
   "user_config": {
     "kaggle_username": {
       "type": "string",
@@ -48,7 +1028,6 @@
       "required": false
     }
   },
-  "tools_generated": true,
   "compatibility": {
     "runtimes": {
       "python": ">=3.10"

@@ -48,9 +48,12 @@ def main() -> None:
     try:
         auth.validate_credentials()
     except auth.CredentialError as e:
-        # Fail fast and LOUD so the client shows a real error, not empty tools.
-        log.error("Startup failed: %s", e)
-        sys.exit(1)
+        # Start anyway: tool discovery (list_tools) and the registry/Smithery scan
+        # must work without credentials, and auth-required tools surface a clean
+        # error at call time. A hard exit here breaks discovery and contradicts the
+        # "read-only / tool listing works without credentials" contract.
+        log.warning("No Kaggle credentials configured: %s. Server starting; "
+                    "auth-required tools will return an error until credentials are set.", e)
 
     transport = os.environ.get("KAGGLE_MCP_TRANSPORT", "stdio")
     log.info("Starting Kaggle MCP server (transport=%s)", transport)

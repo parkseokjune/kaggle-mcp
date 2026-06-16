@@ -3,6 +3,12 @@
 All notable changes to **safe-kaggle-mcp** are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.2]
+### Fixed
+- The server no longer hard-exits when no Kaggle credentials are configured — it starts, serves tool discovery (`list_tools`), and auth-required tools return a clean error at call time. This unblocks registry/Smithery tool scanning and honors the "tool listing works without credentials" contract.
+### Added
+- Smithery listing enriched: the MCPB manifest now declares all 41 tools (name, description, inputSchema) and a rich long description.
+
 ## [0.4.1]
 ### Added
 - MCP Registry support: `server.json` manifest, `<!-- mcp-name: io.github.parkseokjune/kaggle-mcp -->` PyPI-ownership marker in the README, and a `publish-mcp.yml` GitHub Action that publishes to registry.modelcontextprotocol.io headlessly via OIDC on every `v*` tag.
