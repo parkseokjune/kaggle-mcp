@@ -55,8 +55,9 @@ class FakeKaggleApi:
                   description="A dataset. <untrusted stuff>")
 
     def dataset_download_files(self, dataset, path=None, **k):
+        # a small numeric+label CSV so the EDA tool has something to summarize
         with open(os.path.join(path, "data.csv"), "w") as f:
-            f.write("x\n1\n")
+            f.write("a,b,label\n1,2,x\n2,4,y\n3,6,x\n4,8,y\n,10,x\n")
 
     def dataset_status(self, dataset, **k):
         return "ready"
@@ -142,6 +143,17 @@ async def test_kernels_and_models_fields():
     assert m["results"][0]["vote_count"] == 99
     mg = await call("kaggle_get_model", {"model": "google/gemma"})
     assert "<untrusted-content>" in mg["description"]
+
+
+async def test_eda_dataset_returns_compact_summary_not_raw_rows():
+    r = await call("kaggle_eda_dataset", {"dataset": "owner/titanic-data", "target": "label"})
+    summarized = r["eda"]["summarized"][0]
+    assert summarized["shape"] == {"rows": 5, "cols": 3}
+    assert summarized["missing_count"]["a"] == 1            # the empty cell
+    assert summarized["target"]["distribution"] == {"x": 3, "y": 2}
+    assert summarized["top_correlations"][0]["abs_corr"] == 1.0  # a and b perfectly correlated
+    # crucially, no raw row data is echoed back
+    assert "rows_data" not in summarized and "records" not in summarized
 
 
 async def test_destructive_delete_blocked_when_disabled(monkeypatch):

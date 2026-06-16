@@ -3,11 +3,12 @@ status, and a flag-gated delete."""
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from .. import config, formatting, kaggle_client as kc
+from .. import config, eda, formatting, kaggle_client as kc
 from ..safety import (
     consume_token, issue_token, require_destructive_enabled, require_publish_enabled,
     wrap_untrusted,
@@ -77,6 +78,36 @@ def register(mcp: FastMCP) -> None:
                 except ValueError as e:
                     return error(e)
         return {"ref": dataset, "localDir": str(workdir), "files": kc.list_files(workdir)}
+
+    @mcp.tool(annotations=anno("EDA a dataset (compact local summary)", destructive=False))
+    async def kaggle_eda_dataset(dataset: str, file: str = "", target: str = "", max_files: int = 5) -> dict[str, Any]:
+        """Download a dataset and return a COMPACT exploratory summary — shape,
+        dtypes, missingness, target distribution, and top numeric correlations —
+        computed locally with pandas. Never streams raw rows into context. This is
+        the 'find data -> understand it' primitive that most Kaggle MCP servers
+        lack (they dump raw files or just emit a prompt). `dataset` is 'owner/slug'."""
+        workdir = kc.new_workdir(prefix="eda-")
+        try:
+            await kc.call("dataset_download_files", dataset, path=str(workdir), unzip=True)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        for z in workdir.glob("*.zip"):
+            try:
+                kc.safe_extract(z, workdir)
+                z.unlink()
+            except ValueError as e:
+                return error(e)
+        try:
+            if file:
+                path = workdir / file
+                if not path.exists():
+                    return {"isError": True, "error": f"file not found in dataset: {file}"}
+                summary = await asyncio.to_thread(eda.summarize_csv, path, target or None)
+                return {"ref": dataset, "file": file, "eda": summary}
+            summary = await asyncio.to_thread(eda.summarize_dir, workdir, target or None, max_files)
+            return {"ref": dataset, "eda": summary}
+        except Exception as e:  # noqa: BLE001 - surface EDA errors cleanly
+            return error(e)
 
     @mcp.tool(annotations=anno("Create dataset (private)", destructive=False))
     async def kaggle_create_dataset(folder: str, public: bool = False, confirm_token: str = "") -> dict[str, Any]:

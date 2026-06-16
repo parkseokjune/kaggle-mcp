@@ -36,4 +36,35 @@ def summarize_csv(path: str | Path, target: str | None = None, max_cols: int = 4
             "distribution": {str(k): int(v) for k, v in vc.items()},
         }
 
+    # Top absolute correlations among numeric columns (compact, decision-ready).
+    numeric = df[cols].select_dtypes(include="number")
+    if numeric.shape[1] >= 2:
+        corr = numeric.corr(numeric_only=True).abs()
+        pairs = []
+        seen = set()
+        for a in corr.columns:
+            for b in corr.columns:
+                if a != b and (b, a) not in seen:
+                    seen.add((a, b))
+                    val = corr.loc[a, b]
+                    if val == val:  # skip NaN
+                        pairs.append((round(float(val), 3), a, b))
+        pairs.sort(reverse=True)
+        summary["top_correlations"] = [
+            {"cols": [a, b], "abs_corr": v} for v, a, b in pairs[:8]
+        ]
+
     return summary
+
+
+def summarize_dir(directory: str | Path, target: str | None = None, max_files: int = 5) -> dict[str, Any]:
+    """Summarize every CSV in a directory (capped), returning per-file EDA summaries."""
+    directory = Path(directory)
+    csvs = sorted(directory.rglob("*.csv"))[:max_files]
+    out: dict[str, Any] = {"csv_count": len(list(directory.rglob("*.csv"))), "summarized": []}
+    for csv in csvs:
+        try:
+            out["summarized"].append({"file": csv.name, **summarize_csv(csv, target=target)})
+        except Exception as e:  # noqa: BLE001 - one bad CSV shouldn't kill the rest
+            out["summarized"].append({"file": csv.name, "error": str(e)})
+    return out
