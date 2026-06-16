@@ -11,6 +11,32 @@ Unlike a thin API mirror, this server adds the guardrails an autonomous agent ne
 - **Zip-slip-safe** downloads confined to a sandbox work dir.
 - **Credential redaction** across every tool output and log line.
 
+## What you can do with it
+
+Once connected, you can drive your whole Kaggle workflow from a Claude chat — in plain language:
+
+| Ask Claude… | What happens under the hood |
+|---|---|
+| *"Find active NLP competitions and show me the metric and deadline."* | `kaggle_list_competitions` → `kaggle_get_competition` (or the `/kaggle-landscape` report) |
+| *"Find a good Titanic dataset and download it."* | `kaggle_search_datasets` (ranked, top-10) → `kaggle_download_dataset` (sandboxed, auto-unzip) |
+| *"Download the iris dataset and summarize it."* | download → `/kaggle-eda` → compact pandas summary (shape, dtypes, missingness, target dist) — never dumps raw rows |
+| *"Submit my predictions.csv to titanic and tell me the score."* | `kaggle_preview_submission` → `kaggle_submit_to_competition` (confirm-token + budget gate) → `kaggle_get_submission_score` (polls) |
+| *"How many submissions do I have left today?"* | `kaggle_status` — per-competition remaining budget |
+| *"Where am I on the leaderboard?"* | `kaggle_competition_leaderboard` (top-N) + `kaggle_list_submissions` |
+| *"Run this notebook on Kaggle's free GPU and get the output."* | `kaggle_push_kernel` → `kaggle_kernel_status` → `kaggle_kernel_output` |
+| *"Save my engineered features as a private dataset version."* | `kaggle_create_dataset` / `kaggle_version_dataset` — **private by default** |
+| *"What approaches worked for this competition?"* | `kaggle_list_kernels` → `kaggle_pull_kernel` (+ `/kaggle-solution-research`) — fetched code wrapped as untrusted |
+| *"Find and download the Gemma model weights."* | `kaggle_list_models` → `kaggle_get_model` → `kaggle_download_model` |
+
+**Higher-order workflows this unlocks** (the agent chains the tools itself):
+
+- **Autonomous competition loop** — download data → train locally → submit → read back the public score → iterate, all while respecting the daily submission budget.
+- **Kaggle as a remote compute backend** — offload notebook runs to Kaggle's free GPU/TPU and pull results back.
+- **Cross-run memory** — persist intermediate features/artifacts as private dataset versions between sessions.
+- **One-shot project kickoff** — from a single request: discover the competition, surface the rules/metric, scaffold, and pull the data.
+
+Every irreversible step (submit / publish-public / delete) is gated behind a preview→confirm token, so the agent can run autonomously without risking your account.
+
 ## Install
 
 ```bash
@@ -62,9 +88,10 @@ Even when enabled, each destructive call still requires a one-time `confirm_toke
 
 ## Tools
 
-26 curated tools across **account, competitions, datasets, kernels, models** — plus `kaggle://` resources
-(metadata, leaderboard, rules) and `/kaggle-eda`, `/kaggle-submit-checklist`, `/kaggle-landscape`,
-`/kaggle-solution-research` prompts. Run `kaggle_status` to see your auth + submission budget.
+30 curated tools (26 core + 4 `*_preview_*` confirm-token issuers) across **account, competitions,
+datasets, kernels, models** — plus `kaggle://` resources (metadata, leaderboard, rules) and
+`/kaggle-eda`, `/kaggle-submit-checklist`, `/kaggle-landscape`, `/kaggle-solution-research` prompts.
+Run `kaggle_status` to see your auth + submission budget.
 
 ## Develop
 
