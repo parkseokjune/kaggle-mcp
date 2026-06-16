@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0B1F33"/>
+  <!-- safety shield -->
+  <path d="M256 86 L408 146 V268 C408 360 340 414 256 446 C172 414 104 360 104 268 V146 Z"
+        fill="#20BEFF"/>
+  <path d="M256 86 L408 146 V268 C408 360 340 414 256 446 C172 414 104 360 104 268 V146 Z"
+        fill="none" stroke="#0B1F33" stroke-width="10" opacity="0.25"/>
+  <!-- Kaggle 'K' -->
+  <text x="256" y="332" font-family="Helvetica, Arial, sans-serif" font-size="240"
+        font-weight="700" fill="#0B1F33" text-anchor="middle">K</text>
+  <!-- safety check badge -->
+  <circle cx="372" cy="372" r="62" fill="#1FB57A" stroke="#0B1F33" stroke-width="10"/>
+  <path d="M344 372 l20 22 l40 -46" fill="none" stroke="#FFFFFF" stroke-width="16"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

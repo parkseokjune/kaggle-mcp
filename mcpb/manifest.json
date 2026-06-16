@@ -1488,5 +1488,6 @@
     "runtimes": {
       "python": ">=3.10"
     }
-  }
+  },
+  "icon": "icon.png"
 }
