@@ -14,7 +14,7 @@
   "license": "MIT",
   "keywords": ["kaggle", "mcp", "claude", "competitions", "datasets", "safety"],
   "server": {
-    "type": "uv",
+    "type": "python",
     "entry_point": "kaggle_mcp.server",
     "mcp_config": {
       "command": "uvx",
