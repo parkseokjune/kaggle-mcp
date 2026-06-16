@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.parkseokjune/kaggle-mcp",
   "title": "Safe Kaggle MCP",
-  "description": "Safety-first Kaggle MCP server (41 tools) for competitions, datasets, kernels, models, and discussions over stdio. Gates every destructive/publish action behind a two-call confirm token, caps submissions, fences untrusted Kaggle text, and keeps credentials out of the model context.",
+  "description": "Safety-first Kaggle MCP — confirm-gated destructive ops, submission budget, injection-fenced.",
   "version": "0.4.1",
   "repository": {
     "url": "https://github.com/parkseokjune/kaggle-mcp",
