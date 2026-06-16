@@ -2,7 +2,7 @@
 # Distribution name on PyPI ('kaggle-mcp' was already taken). The console command
 # and import package remain `kaggle-mcp` / `kaggle_mcp`.
 name = "safe-kaggle-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "A safety-first MCP server connecting Claude to Kaggle (competitions, datasets, kernels, models)."
 readme = "README.md"
 requires-python = ">=3.10"

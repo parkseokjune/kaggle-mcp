@@ -7,7 +7,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from .. import config, formatting, kaggle_client as kc
-from ..safety import consume_token, issue_token, require_destructive_enabled, wrap_untrusted
+from ..safety import append_ledger, consume_token, issue_token, require_destructive_enabled, wrap_untrusted
 from . import anno, error
 
 # ApiModel (kaggle >=2.x) exposes vote_count but not download_count.
@@ -78,6 +78,7 @@ def register(mcp: FastMCP) -> None:
             await kc.call("model_delete", model, no_confirm=True)
         except Exception as e:  # noqa: BLE001
             return error(e)
+        append_ledger("delete_model", model)
         return {"ref": model, "deleted": True}
 
     @mcp.tool(annotations=anno("Preview model delete", read_only=True, open_world=False))

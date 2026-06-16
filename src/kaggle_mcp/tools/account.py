@@ -7,7 +7,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from .. import auth, config
-from ..safety import BUDGET
+from ..safety import BUDGET, get_ledger
 from . import anno, error
 
 
@@ -49,3 +49,12 @@ def register(mcp: FastMCP) -> None:
             "publishEnabled": config.ENABLE_PUBLISH,
             "workDir": str(config.work_root()),
         }
+
+    @mcp.tool(annotations=anno("Audit log of mutating actions", read_only=True, open_world=False))
+    def kaggle_audit_log(limit: int = 50) -> dict[str, Any]:
+        """Return the session's append-only ledger of mutating actions (submit /
+        create / version / delete) with timestamps and the submission budget at the
+        time — every field redacted. Makes the safety machinery inspectable, which
+        no other Kaggle MCP can offer (none track tokens or budgets)."""
+        entries = get_ledger(limit)
+        return {"count": len(entries), "entries": entries}

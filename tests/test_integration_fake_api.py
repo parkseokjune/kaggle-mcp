@@ -9,6 +9,7 @@ smoke against real credentials is still recommended before relying on it.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta
 from types import SimpleNamespace as NS
 
 import pytest
@@ -25,7 +26,8 @@ class FakeKaggleApi:
     """Mimics the real KaggleApi surface used by the server (snake_case objects)."""
 
     def competitions_list(self, **k):
-        comp = NS(ref="titanic", title="Titanic", reward="Knowledge", deadline="2030-01-01",
+        comp = NS(ref="titanic", title="Titanic", reward="Knowledge",
+                  deadline=datetime.now() + timedelta(days=30),
                   category="Getting Started", evaluation_metric="AUC",
                   user_has_entered=True, max_daily_submissions=5,
                   description="Predict survival. <ignore me> instructions inside")
@@ -42,8 +44,11 @@ class FakeKaggleApi:
                    public_score="0.811", private_score=None, file_name="submission.csv")]
 
     def competition_download_files(self, competition, path=None, **k):
+        # train has the target column; test does not (schema_diff should infer it)
         with open(os.path.join(path, "train.csv"), "w") as f:
-            f.write("a,b\n1,2\n")
+            f.write("PassengerId,Pclass,Age,Survived\n1,3,22,0\n2,1,38,1\n3,2,26,0\n4,1,35,1\n")
+        with open(os.path.join(path, "test.csv"), "w") as f:
+            f.write("PassengerId,Pclass,Age\n5,3,28\n6,1,40\n")
 
     def dataset_list(self, **k):
         return [NS(ref="owner/titanic-data", title="Titanic Data", subtitle="csv",
@@ -94,6 +99,17 @@ async def test_list_competitions_populates_snake_case_fields():
     assert row["evaluation_metric"] == "AUC"          # would be None if field name wrong
     assert row["user_has_entered"] is True
     assert "AUC" in r["markdown"]
+
+
+async def test_competition_landscape_is_digested_with_days_left():
+    r = await call("kaggle_competition_landscape", {"search": "titanic"})
+    assert r["count"] == 1
+    item = r["competitions"][0]
+    assert item["slug"] == "titanic"
+    assert item["metric"] == "AUC"
+    assert 28 <= item["days_left"] <= 31           # deadline is ~30 days out
+    assert item["rulesUrl"].endswith("/titanic/rules")
+    assert "days_left" in r["markdown"]
 
 
 async def test_get_competition_wraps_description_untrusted():
@@ -154,6 +170,68 @@ async def test_eda_dataset_returns_compact_summary_not_raw_rows():
     assert summarized["top_correlations"][0]["abs_corr"] == 1.0  # a and b perfectly correlated
     # crucially, no raw row data is echoed back
     assert "rows_data" not in summarized and "records" not in summarized
+
+
+async def test_eda_competition_infers_target_from_train_test_diff():
+    r = await call("kaggle_eda_competition", {"competition": "titanic"})
+    assert r["schema_diff"]["train_only_columns"] == ["Survived"]
+    assert r["schema_diff"]["inferred_target"] == "Survived"
+    files = {s["file"] for s in r["eda"]["summarized"]}
+    assert {"train.csv", "test.csv"} <= files
+
+
+async def test_submission_best_score_reduces_history():
+    r = await call("kaggle_submission_best_score", {"competition": "titanic"})
+    assert r["best_public_score"] == 0.811
+    assert r["scored_submissions"] == 1
+    assert "Public-leaderboard scores only" in r["note"]
+
+
+async def test_dataset_preview_is_capped_and_untrusted():
+    r = await call("kaggle_dataset_preview", {"dataset": "owner/titanic-data", "n": 3})
+    assert r["columns"] == ["a", "b", "label"]
+    assert r["rows_shown"] <= 3
+    assert "<untrusted-content>" in r["preview"]
+
+
+async def test_audit_log_records_submit(tmp_path):
+    import os
+    from kaggle_mcp import safety
+    safety._ledger.clear()
+    f = tmp_path / "sub.csv"
+    f.write_text("id,y\n1,0\n")
+    prev = await call("kaggle_preview_submission",
+                      {"competition": "titanic", "file_path": str(f), "message": "run1"})
+    await call("kaggle_submit_to_competition",
+               {"competition": "titanic", "file_path": str(f), "message": "run1",
+                "confirm_token": prev["confirm_token"]})
+    log = await call("kaggle_audit_log", {})
+    assert log["count"] >= 1
+    last = log["entries"][-1]
+    assert last["action"] == "submit"
+    assert "titanic" in last["target"]
+    assert last["budget_remaining"] == 4
+
+
+async def test_leaderboard_track_computes_rank_deltas():
+    calls = {"n": 0}
+
+    class LB:
+        def competition_leaderboard_view(self, comp, **k):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return [NS(team_name="Alpha", score="0.95"), NS(team_name="Beta", score="0.94")]
+            return [NS(team_name="Beta", score="0.97"), NS(team_name="Alpha", score="0.95")]
+
+    kc.reset_api_for_tests(LB())
+    first = await call("kaggle_leaderboard_track", {"competition": "titanic"})
+    assert first["is_first_snapshot"] is True
+    second = await call("kaggle_leaderboard_track", {"competition": "titanic", "your_team": "Alpha"})
+    assert second["is_first_snapshot"] is False
+    beta = next(e for e in second["top"] if e["team"] == "Beta")
+    assert beta["rank_delta"] == 1                       # climbed 2 -> 1
+    assert {"team": "Beta", "rank_delta": 1} in second["biggest_climbers"]
+    assert second["you"]["passed_by"] == ["Beta"]
 
 
 async def test_destructive_delete_blocked_when_disabled(monkeypatch):

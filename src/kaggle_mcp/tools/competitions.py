@@ -8,13 +8,17 @@ can decide its next move from one call.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import re
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from .. import config, formatting, kaggle_client as kc
-from ..safety import BUDGET, consume_token, issue_token, redact, wrap_untrusted
+from .. import config, eda, formatting, kaggle_client as kc
+from ..safety import BUDGET, append_ledger, consume_token, issue_token, redact, wrap_untrusted
 from . import anno, error
 
 # NOTE: the installed kaggle (>=2.x, kagglesdk) returns SNAKE_CASE object fields.
@@ -57,6 +61,49 @@ def register(mcp: FastMCP) -> None:
         env["markdown"] = formatting.markdown_table(rows, ["slug", "title", "reward", "deadline", "evaluation_metric"])
         return env
 
+    @mcp.tool(annotations=anno("Competition landscape report", read_only=True))
+    async def kaggle_competition_landscape(search: str = "", category: str = "",
+                                           limit: int = 15, include_ended: bool = False) -> dict[str, Any]:
+        """Pre-digested triage report of competitions: for each, the slug, prize,
+        evaluation metric, deadline, and **days_left** — sorted by soonest deadline
+        so you can decide what to enter at a glance. A single decision-ready artifact
+        rather than raw endpoint output (which is what other Kaggle MCPs return)."""
+        try:
+            raw = await kc.call("competitions_list", search=search or None,
+                                category=category or None, page=1)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        comps = getattr(raw, "competitions", raw) or []
+        items = []
+        now = datetime.now()
+        for c in comps:
+            deadline = getattr(c, "deadline", None)
+            days_left = None
+            if isinstance(deadline, datetime):
+                days_left = (deadline - now).days
+            if not include_ended and days_left is not None and days_left < 0:
+                continue
+            items.append({
+                "slug": _comp_slug(c),
+                "title": getattr(c, "title", None),
+                "reward": getattr(c, "reward", None),
+                "metric": getattr(c, "evaluation_metric", None),
+                "category": getattr(c, "category", None),
+                "deadline": str(deadline) if deadline else None,
+                "days_left": days_left,
+                "max_daily_submissions": getattr(c, "max_daily_submissions", None),
+                "rulesUrl": f"https://www.kaggle.com/c/{_comp_slug(c)}/rules",
+            })
+        # soonest actionable deadline first (None deadlines sort last)
+        items.sort(key=lambda x: (x["days_left"] is None, x["days_left"] if x["days_left"] is not None else 0))
+        items = items[:max(1, min(limit, 50))]
+        return {
+            "count": len(items),
+            "competitions": items,
+            "markdown": formatting.markdown_table(
+                items, ["slug", "metric", "reward", "days_left", "category"]),
+        }
+
     @mcp.tool(annotations=anno("Get a competition", read_only=True))
     async def kaggle_get_competition(competition: str) -> dict[str, Any]:
         """Fetch one competition's details and a truncated, untrusted-wrapped rules
@@ -96,6 +143,73 @@ def register(mcp: FastMCP) -> None:
         return {"competition": competition, "top_n": top_n, "entries": rows,
                 "markdown": formatting.markdown_table(rows, ["rank", "team", "score"])}
 
+    @mcp.tool(annotations=anno("Track leaderboard (snapshot + deltas)", read_only=True))
+    async def kaggle_leaderboard_track(competition: str, top_n: int = 20, your_team: str = "") -> dict[str, Any]:
+        """Snapshot the public top-N and diff it against the LAST snapshot you took:
+        per-team rank deltas, new entrants, biggest climbers, and (if your_team is
+        given) your movement + who passed you. Kaggle has no historical-leaderboard
+        endpoint, so this stateful local tracking is unique. PUBLIC leaderboard only;
+        deltas are vs your previous snapshot, not an absolute time series."""
+        top_n = max(1, min(top_n, 100))
+        try:
+            raw = await kc.call("competition_leaderboard_view", competition)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        entries = getattr(raw, "submissions", raw) or []
+        current = []
+        for i, e in enumerate(formatting.cap_list(entries, top_n), start=1):
+            team = redact(str(getattr(e, "team_name", "") or ""))
+            score = getattr(e, "score", None)
+            current.append({"rank": i, "team": team, "score": score})
+
+        cache_dir = config.work_root() / "lb_snapshots"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        path = cache_dir / (re.sub(r"[^A-Za-z0-9_.-]", "_", competition) + ".json")
+        prev = None
+        if path.exists():
+            try:
+                prev = json.loads(path.read_text()).get("entries")
+            except (OSError, json.JSONDecodeError):
+                prev = None
+
+        prev_rank = {e["team"]: e["rank"] for e in prev} if prev else {}
+        new_entrants, movers = [], []
+        for e in current:
+            if e["team"] not in prev_rank:
+                if prev is not None:
+                    new_entrants.append(e["team"])
+                e["rank_delta"] = None
+            else:
+                e["rank_delta"] = prev_rank[e["team"]] - e["rank"]  # +ve = climbed
+                if e["rank_delta"]:
+                    movers.append((e["rank_delta"], e["team"]))
+        movers.sort(reverse=True)
+
+        out: dict[str, Any] = {
+            "competition": competition,
+            "is_first_snapshot": prev is None,
+            "top": current,
+            "new_entrants": new_entrants,
+            "biggest_climbers": [{"team": t, "rank_delta": d} for d, t in movers[:5]],
+            "note": "Public leaderboard only; deltas are vs YOUR previous snapshot (Kaggle has no historical endpoint).",
+        }
+        if your_team:
+            yt = redact(your_team)
+            mine = next((e for e in current if e["team"] == yt), None)
+            if mine:
+                passed_you = [e["team"] for e in current
+                              if e["rank"] < mine["rank"] and prev_rank.get(e["team"], 10**9) > prev_rank.get(yt, 10**9)]
+                out["you"] = {"team": yt, "rank": mine["rank"], "rank_delta": mine.get("rank_delta"),
+                              "passed_by": passed_you}
+            else:
+                out["you"] = {"team": yt, "note": "not in the current top-N"}
+
+        try:
+            path.write_text(json.dumps({"entries": current}))
+        except OSError:  # pragma: no cover
+            pass
+        return out
+
     @mcp.tool(annotations=anno("Download competition files", destructive=False))
     async def kaggle_download_competition_files(competition: str, file: str = "", unzip: bool = True) -> dict[str, Any]:
         """Download competition data into an isolated work dir (zip auto-extracted
@@ -119,6 +233,79 @@ def register(mcp: FastMCP) -> None:
         return {"competition": competition, "localDir": str(workdir),
                 "files": kc.list_files(workdir),
                 "note": "Local paths only — open files yourself; nothing is auto-attached to context."}
+
+    @mcp.tool(annotations=anno("EDA a competition (data + train/test diff)", destructive=False))
+    async def kaggle_eda_competition(competition: str, target: str = "", max_files: int = 5) -> dict[str, Any]:
+        """Download a competition's data and return a pre-first-submission view:
+        a compact pandas digest per CSV (shape/dtypes/missingness/correlations) PLUS
+        a train-vs-test column diff that auto-infers the target — the orientation no
+        other Kaggle MCP ships. Requires the competition rules accepted (403 else)."""
+        workdir = kc.new_workdir(prefix="ceda-")
+        try:
+            await kc.call("competition_download_files", competition, path=str(workdir))
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        for z in workdir.glob("*.zip"):
+            try:
+                kc.safe_extract(z, workdir)
+                z.unlink()
+            except ValueError as e:
+                return error(e)
+        out: dict[str, Any] = {"competition": competition}
+        # train/test schema diff -> inferred target
+        train = next(iter(workdir.rglob("train.csv")), None)
+        test = next(iter(workdir.rglob("test.csv")), None)
+        if train and test:
+            try:
+                diff = await asyncio.to_thread(eda.schema_diff, train, test)
+                out["schema_diff"] = diff
+                target = target or (diff.get("inferred_target") or "")
+            except Exception as e:  # noqa: BLE001
+                out["schema_diff_error"] = str(e)
+        try:
+            out["eda"] = await asyncio.to_thread(eda.summarize_dir, workdir, target or None, max_files)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        return out
+
+    @mcp.tool(annotations=anno("Submission best-score digest", read_only=True))
+    async def kaggle_submission_best_score(competition: str, higher_is_better: bool = True) -> dict[str, Any]:
+        """Reduce raw submission history to the decision signal: best public score
+        (respecting metric direction), first/best/latest trend, today's submission
+        count, and any failure reasons — the 'is it worth iterating?' answer other
+        servers leave as a raw list. Public scores only (private score is hidden
+        until the deadline)."""
+        try:
+            raw = await kc.call("competition_submissions", competition)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        subs = list(raw or [])
+        scored = []
+        failures = []
+        for s in subs:
+            status = str(getattr(s, "status", "") or "")
+            ps = getattr(s, "public_score", None)
+            if "error" in status.lower():
+                failures.append({"file": getattr(s, "file_name", None),
+                                 "reason": getattr(s, "error_description", None) or status})
+            if ps not in (None, ""):
+                try:
+                    scored.append((float(ps), getattr(s, "file_name", None), str(getattr(s, "date", ""))))
+                except (TypeError, ValueError):
+                    pass
+        best = (max(scored) if higher_is_better else min(scored)) if scored else None
+        return {
+            "competition": competition,
+            "total_submissions": len(subs),
+            "scored_submissions": len(scored),
+            "best_public_score": best[0] if best else None,
+            "best_file": best[1] if best else None,
+            "latest_public_score": scored[0][0] if scored else None,  # API returns newest first
+            "today_used": BUDGET.cap - BUDGET.remaining(competition),
+            "today_remaining": BUDGET.remaining(competition),
+            "failures": failures[:10],
+            "note": "Public-leaderboard scores only; private score is withheld until the deadline.",
+        }
 
     @mcp.tool(annotations=anno("Accept competition rules (relay)", destructive=False, open_world=False))
     def kaggle_accept_competition_rules(competition: str) -> dict[str, Any]:
@@ -168,6 +355,8 @@ def register(mcp: FastMCP) -> None:
         except Exception as e:  # noqa: BLE001
             return error(e)
         remaining = BUDGET.consume(competition)
+        append_ledger("submit", competition, budget_remaining=remaining,
+                      extra={"file": file_path, "message": message})
         return {"competition": competition, "status": "pending", "message": message,
                 "remainingBudget": remaining,
                 "note": "Scoring is async — poll kaggle_get_submission_score for the public score."}

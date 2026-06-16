@@ -10,8 +10,8 @@ from mcp.server.fastmcp import FastMCP
 
 from .. import config, eda, formatting, kaggle_client as kc
 from ..safety import (
-    consume_token, issue_token, require_destructive_enabled, require_publish_enabled,
-    wrap_untrusted,
+    append_ledger, consume_token, issue_token, require_destructive_enabled,
+    require_publish_enabled, wrap_untrusted,
 )
 from . import anno, error
 
@@ -109,6 +109,36 @@ def register(mcp: FastMCP) -> None:
         except Exception as e:  # noqa: BLE001 - surface EDA errors cleanly
             return error(e)
 
+    @mcp.tool(annotations=anno("Preview dataset rows (capped)", destructive=False))
+    async def kaggle_dataset_preview(dataset: str, file: str = "", n: int = 5) -> dict[str, Any]:
+        """Safe first-N-rows preview of a dataset CSV — headers, dtypes, and up to
+        `n` (<=50) width-capped rows, wrapped as untrusted content. 'What does the
+        data look like?' without dumping the whole file or unbounded rows."""
+        workdir = kc.new_workdir(prefix="prev-")
+        try:
+            if file:
+                await kc.call("dataset_download_file", dataset, file, path=str(workdir))
+            else:
+                await kc.call("dataset_download_files", dataset, path=str(workdir), unzip=True)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        for z in workdir.glob("*.zip"):
+            try:
+                kc.safe_extract(z, workdir)
+                z.unlink()
+            except ValueError as e:
+                return error(e)
+        csv = (workdir / file) if file else next(iter(workdir.rglob("*.csv")), None)
+        if not csv or not csv.exists():
+            return {"isError": True, "error": "no CSV found to preview"}
+        try:
+            prev = await asyncio.to_thread(eda.preview_csv, csv, n)
+        except Exception as e:  # noqa: BLE001
+            return error(e)
+        return {"ref": dataset, "file": csv.name, "columns": prev["columns"],
+                "dtypes": prev["dtypes"], "rows_shown": prev["rows_shown"],
+                "preview": wrap_untrusted(str(prev["rows"]))}
+
     @mcp.tool(annotations=anno("Create dataset (private)", destructive=False))
     async def kaggle_create_dataset(folder: str, public: bool = False, confirm_token: str = "") -> dict[str, Any]:
         """Create a NEW dataset from a local folder. PRIVATE by default. Making it
@@ -126,7 +156,9 @@ def register(mcp: FastMCP) -> None:
             await kc.call("dataset_create_new", folder=folder, public=public)
         except Exception as e:  # noqa: BLE001
             return error(e)
-        return {"folder": folder, "visibility": "public" if public else "private",
+        vis = "public" if public else "private"
+        append_ledger("create_dataset", folder, extra={"visibility": vis})
+        return {"folder": folder, "visibility": vis,
                 "status": "queued", "note": "Poll kaggle_dataset_status until ready."}
 
     @mcp.tool(annotations=anno("Preview public dataset publish", read_only=True, open_world=False))
@@ -145,6 +177,7 @@ def register(mcp: FastMCP) -> None:
             await kc.call("dataset_create_version", folder, version_notes, delete_old_versions=delete_old_versions)
         except Exception as e:  # noqa: BLE001
             return error(e)
+        append_ledger("version_dataset", folder, extra={"notes": version_notes})
         return {"folder": folder, "status": "queued", "versionNotes": version_notes}
 
     @mcp.tool(annotations=anno("Dataset status", read_only=True))
@@ -174,6 +207,7 @@ def register(mcp: FastMCP) -> None:
             await kc.call("dataset_delete", owner, slug, no_confirm=True)
         except Exception as e:  # noqa: BLE001
             return error(e)
+        append_ledger("delete_dataset", dataset)
         return {"ref": dataset, "deleted": True}
 
     @mcp.tool(annotations=anno("Preview dataset delete", read_only=True, open_world=False))

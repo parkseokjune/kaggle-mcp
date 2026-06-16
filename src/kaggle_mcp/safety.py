@@ -8,10 +8,12 @@ are advisory UX hints only and are never used as the enforcement boundary.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import secrets
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 from . import config
 
@@ -132,3 +134,36 @@ def require_publish_enabled() -> None:
 
 class GateClosed(RuntimeError):
     """Raised when a server-level safety switch blocks an operation."""
+
+
+# --- Audit ledger (makes the safety machinery inspectable) -------------------
+
+_ledger: list[dict] = []
+
+
+def append_ledger(action: str, target: str, *, budget_remaining: int | None = None,
+                  extra: dict | None = None) -> dict:
+    """Append a redacted record of a mutating action to the session ledger
+    (in-memory + a JSONL file under the sandbox). Every field is redacted."""
+    try:
+        ts = datetime.now(timezone.utc).isoformat()
+    except Exception:  # pragma: no cover - clock issues should never crash a tool
+        ts = ""
+    rec = {
+        "ts": ts,
+        "action": action,
+        "target": redact(str(target)),
+        "budget_remaining": budget_remaining,
+        "extra": {k: redact(str(v)) for k, v in (extra or {}).items()},
+    }
+    _ledger.append(rec)
+    try:
+        with open(config.work_root() / "audit.jsonl", "a") as f:
+            f.write(json.dumps(rec) + "\n")
+    except OSError:  # pragma: no cover - ledger file is best-effort
+        pass
+    return rec
+
+
+def get_ledger(limit: int = 100) -> list[dict]:
+    return _ledger[-max(1, limit):]
